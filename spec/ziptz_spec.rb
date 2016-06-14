@@ -26,6 +26,12 @@ describe Ziptz do
       end
     end
 
+    context 'when adjusting for daylight savings time' do
+      it 'returns the time zone number' do
+        expect(ziptz.time_zone_offset('97034', true)).to eq -7
+      end
+    end
+
     context 'when there is no matching zipcode' do
       it 'returns nil' do
         expect(ziptz.time_zone_offset('xyz')).to be_nil

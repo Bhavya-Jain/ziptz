@@ -24,13 +24,12 @@ class Ziptz
   end
 
   def time_zone_name(zip)
-    hash = time_zone_info(zip)
-    hash && hash[:name]
+    TZ_INFO.dig get_time_zone(zip), :name
   end
 
-  def time_zone_offset(zip)
-    tz = time_zone_info(zip)
-    tz && tz[:offset]
+  def time_zone_offset(zip, adjust_for_dst = false)
+    offset = TZ_INFO.dig get_time_zone(zip), :offset
+    adjust_for_dst ? offset + 1 : offset
   end
 
   def zips(tz_name)
@@ -41,7 +40,7 @@ class Ziptz
   protected
 
   def zips_by_code(tz_code)
-    @zips.select { |_, v| v == tz_code.to_s }.keys.sort
+    @zips.select { |_, v| v[:time_zone] == tz_code.to_s }.keys.sort
   end
 
   def time_zone_info(zip)
@@ -49,7 +48,7 @@ class Ziptz
   end
 
   def get_time_zone(zip)
-    @zips[zip.to_s]
+    @zips.dig zip.to_s, :time_zone
   end
 
   def tz_name_to_code
@@ -65,8 +64,9 @@ class Ziptz
 
   def load_data
     File.foreach(data_path).with_object({}) do |line, data|
-      zip, tz = line.strip.split('=')
-      data[zip] = tz
+      zip, info = line.strip.split('=')
+      tz, dst = info.split('|')
+      data[zip] = {time_zone: tz, dst: dst == 'Y'}
     end
   end
 end
