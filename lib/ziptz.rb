@@ -1,6 +1,18 @@
 require 'yaml'
 
 class Ziptz
+  class ZipCode < Object
+    attr_accessor :code
+    attr_accessor :time_zone
+    attr_accessor :dst
+
+    def initialize(code: nil, time_zone: nil, dst: nil)
+      @code = code
+      @time_zone = time_zone
+      @supports_dst = dst
+    end
+  end
+
   VERSION = '1.0.14'
 
   TZ_INFO = {
@@ -39,8 +51,8 @@ class Ziptz
 
   protected
 
-  def zips_by_code(tz_code)
-    @zips.select { |_, v| v[:time_zone] == tz_code.to_s }.keys.sort
+  def zips_by_code(tz)
+    @zips.select { |z| z.time_zone == tz.to_s }.map(&:code).sort
   end
 
   def time_zone_info(zip)
@@ -48,7 +60,8 @@ class Ziptz
   end
 
   def get_time_zone(zip)
-    @zips.dig zip.to_s, :time_zone
+    zip = @zips.find { |z| z.code == zip }
+    zip && zip.time_zone
   end
 
   def tz_name_to_code
@@ -63,10 +76,10 @@ class Ziptz
   end
 
   def load_data
-    File.foreach(data_path).with_object({}) do |line, data|
+    File.foreach(data_path).map do |line|
       zip, info = line.strip.split('=')
       tz, dst = info.split('|')
-      data[zip] = {time_zone: tz, dst: dst == 'Y'}
+      ZipCode.new(code: zip, time_zone: tz, dst: dst == 'Y')
     end
   end
 end
